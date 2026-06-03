@@ -93,7 +93,6 @@ jobs:
             "templates/files.html"
             "templates/profile.html"
             "templates/error.html"
-            "uploads/.gitkeep"
           )
 
           FAILED=0
