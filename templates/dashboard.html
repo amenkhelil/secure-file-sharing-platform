@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+    <!-- Page header -->
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Welcome back, {{ current_user.name }}</h1>
+            <p class="page-subtitle">Here's an overview of your files and activity.</p>
+        </div>
+        <a href="{{ url_for('files') }}" class="btn btn-primary">Upload File</a>
+    </div>
+
+    <!-- Stats cards -->
+    <div class="stats-grid">
+
+        <div class="stat-card">
+            <div class="stat-icon stat-icon-blue">📁</div>
+            <div class="stat-body">
+                <div class="stat-value">{{ total_files }}</div>
+                <div class="stat-label">Total Files</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon stat-icon-green">🔗</div>
+            <div class="stat-body">
+                <div class="stat-value">{{ shared_files }}</div>
+                <div class="stat-label">Shared Files</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon stat-icon-gray">🔒</div>
+            <div class="stat-body">
+                <div class="stat-value">{{ total_files - shared_files }}</div>
+                <div class="stat-label">Private Files</div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Recent files table -->
+    <div class="section-card">
+        <div class="section-header">
+            <h2 class="section-title">Recent Uploads</h2>
+            <a href="{{ url_for('files') }}" class="link">View all →</a>
+        </div>
+
+        {% if recent_files %}
+        <div class="table-wrapper">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>File Name</th>
+                        <th>Size</th>
+                        <th>Uploaded</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for file in recent_files %}
+                    <tr>
+                        <td>
+                            <div class="file-name-cell">
+                                <span class="file-ext-badge ext-{{ file.original_filename.rsplit('.', 1)[-1].lower() }}">
+                                    {{ file.original_filename.rsplit('.', 1)[-1].upper() }}
+                                </span>
+                                <span class="file-name-text">{{ file.original_filename }}</span>
+                            </div>
+                        </td>
+                        <td class="text-mono text-muted">{{ format_file_size(file.file_size) }}</td>
+                        <td class="text-muted">{{ file.upload_date.strftime('%b %d, %Y') }}</td>
+                        <td>
+                            {% if file.share_token %}
+                                <span class="badge badge-success">Shared</span>
+                            {% else %}
+                                <span class="badge badge-gray">Private</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">📂</div>
+            <p class="empty-text">No files uploaded yet.</p>
+            <a href="{{ url_for('files') }}" class="btn btn-primary">Upload your first file</a>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

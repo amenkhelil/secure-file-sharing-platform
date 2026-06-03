@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}My Files{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+    <!-- Page header -->
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">My Files</h1>
+            <p class="page-subtitle">Upload, manage, and share your files.</p>
+        </div>
+    </div>
+
+    <!-- Upload section -->
+    <div class="section-card">
+        <h2 class="section-title" style="margin-bottom: 1rem;">Upload a New File</h2>
+
+        <form action="{{ url_for('upload_file') }}" method="POST" enctype="multipart/form-data" id="uploadForm">
+
+            <!-- Drop zone -->
+            <div class="drop-zone" id="dropZone">
+                <div class="drop-zone-content">
+                    <div class="drop-icon">⬆</div>
+                    <p class="drop-text">Drag & drop a file here, or</p>
+                    <label for="fileInput" class="btn btn-outline" style="cursor: pointer;">
+                        Choose File
+                    </label>
+                    <input type="file" id="fileInput" name="file" class="file-input-hidden"
+                           accept=".pdf,.docx,.txt,.png,.jpg,.jpeg">
+                    <p class="drop-hint">PDF, DOCX, TXT, PNG, JPG, JPEG — max 20 MB</p>
+                </div>
+
+                <!-- File selected preview -->
+                <div class="file-preview" id="filePreview" style="display: none;">
+                    <span class="file-preview-name" id="filePreviewName"></span>
+                    <button type="button" class="btn-icon" id="clearFile" title="Remove">×</button>
+                </div>
+            </div>
+
+            <div style="margin-top: 0.75rem;">
+                <button type="submit" class="btn btn-primary" id="uploadBtn" disabled>
+                    Upload File
+                </button>
+            </div>
+
+        </form>
+    </div>
+
+    <!-- Files list -->
+    <div class="section-card">
+        <div class="section-header">
+            <h2 class="section-title">Uploaded Files</h2>
+            <span class="text-muted">{{ files|length }} file{{ 's' if files|length != 1 else '' }}</span>
+        </div>
+
+        {% if files %}
+        <div class="table-wrapper">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>File Name</th>
+                        <th>Size</th>
+                        <th>Uploaded</th>
+                        <th>Share Link</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for file in files %}
+                    <tr>
+                        <!-- File name + type badge -->
+                        <td>
+                            <div class="file-name-cell">
+                                <span class="file-ext-badge ext-{{ file.original_filename.rsplit('.', 1)[-1].lower() }}">
+                                    {{ file.original_filename.rsplit('.', 1)[-1].upper() }}
+                                </span>
+                                <span class="file-name-text" title="{{ file.original_filename }}">
+                                    {{ file.original_filename }}
+                                </span>
+                            </div>
+                        </td>
+
+                        <!-- File size -->
+                        <td class="text-mono text-muted">{{ format_file_size(file.file_size) }}</td>
+
+                        <!-- Upload date -->
+                        <td class="text-muted">{{ file.upload_date.strftime('%b %d, %Y') }}</td>
+
+                        <!-- Share link / token status -->
+                        <td>
+                            {% if file.share_token %}
+                            <div class="share-link-cell">
+                                <input
+                                    type="text"
+                                    class="share-link-input"
+                                    value="{{ request.host_url }}share/{{ file.share_token }}"
+                                    readonly
+                                    id="shareLink{{ file.id }}"
+                                >
+                                <button
+                                    class="btn btn-sm btn-outline"
+                                    onclick="copyLink('shareLink{{ file.id }}')"
+                                    title="Copy link"
+                                >
+                                    Copy
+                                </button>
+                            </div>
+                            {% else %}
+                            <span class="text-muted text-sm">No link</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Action buttons -->
+                        <td>
+                            <div class="action-buttons">
+
+                                <!-- Download -->
+                                <a href="{{ url_for('download_file', file_id=file.id) }}"
+                                   class="btn btn-sm btn-outline"
+                                   title="Download">
+                                    ↓ Download
+                                </a>
+
+                                <!-- Generate / Revoke share link -->
+                                {% if file.share_token %}
+                                <form action="{{ url_for('revoke_share_link', file_id=file.id) }}"
+                                      method="POST" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-warning"
+                                            title="Revoke share link">
+                                        Revoke
+                                    </button>
+                                </form>
+                                {% else %}
+                                <form action="{{ url_for('generate_share_link', file_id=file.id) }}"
+                                      method="POST" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-success"
+                                            title="Generate share link">
+                                        Share
+                                    </button>
+                                </form>
+                                {% endif %}
+
+                                <!-- Delete -->
+                                <form action="{{ url_for('delete_file', file_id=file.id) }}"
+                                      method="POST" style="display:inline;"
+                                      onsubmit="return confirm('Delete \'{{ file.original_filename }}\'? This cannot be undone.');">
+                                    <button type="submit" class="btn btn-sm btn-danger"
+                                            title="Delete file">
+                                        Delete
+                                    </button>
+                                </form>
+
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">📂</div>
+            <p class="empty-text">You haven't uploaded any files yet.</p>
+            <p class="text-muted text-sm">Use the upload form above to get started.</p>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}
