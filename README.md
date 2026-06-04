@@ -89,7 +89,7 @@ The project was designed as both a full-stack web application and a practical De
 secure-file-sharing-platform/
 ├── .github/
 │   └── workflows/
-│       └── ci-cd.yml
+│       └── ci.yml
 ├── app.py
 ├── requirements.txt
 ├── Dockerfile
@@ -351,7 +351,7 @@ For production deployments:
 
 Amenallah Khelil
 
-Telecommunications Engineering Student
+Telecommunications Engineering Student ( @ ENET’Com)
 
 Interested in:
 
@@ -359,7 +359,6 @@ Interested in:
 * Cloud Computing
 * Cybersecurity
 * MLOps
-* Software Engineering
 
-GitHub: https://github.com/amenkhelil
-Linkedin: https://www.linkedin.com/in/amenallah-khelil
+- GitHub: https://github.com/amenkhelil
+- Linkedin: https://www.linkedin.com/in/amenallah-khelil
