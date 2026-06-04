@@ -1,140 +1,354 @@
 # SecureShare — Secure File Sharing Platform
 
-A simple, self-hosted Flask web application that lets users upload, manage, and securely share files via private share links.
+A secure file-sharing web application built with Flask that allows users to upload, manage, and securely share files through private access links.
+
+This project also demonstrates modern DevOps practices, including containerization, automated code quality checks, static code analysis, CI/CD automation, and Docker image publishing.
+
+---
+
+## Overview
+
+SecureShare enables authenticated users to:
+
+* Create an account and securely log in
+* Upload and manage files
+* Generate secure sharing links
+* Revoke file access at any time
+* Download shared files through unique access tokens
+* Manage personal profile information
+
+The project was designed as both a full-stack web application and a practical DevOps learning project.
 
 ---
 
 ## Features
 
-- **User accounts** — register, log in, and log out securely
-- **File uploads** — drag-and-drop or click-to-browse; supports PDF, DOCX, TXT, PNG, JPG, JPEG (max 20 MB)
-- **File management** — view, download, and delete your own files
-- **Secure share links** — generate a private token link for any file; anyone with the link can download it without logging in
-- **Revoke sharing** — remove a share link at any time to make a file private again
-- **Profile management** — update your display name
-- **Responsive UI** — works on desktop and mobile
+### User Authentication
+
+* User registration
+* Secure login and logout
+* Session management using Flask-Login
+* Profile management
+
+### File Management
+
+* Upload files
+* Download files
+* Delete files
+* Personal file ownership
+
+### Secure File Sharing
+
+* Generate unique sharing links
+* Token-based access control
+* Public download links without authentication
+* Share link revocation
+
+### Responsive Interface
+
+* Dashboard overview
+* File management page
+* Profile page
+* Mobile-friendly design
 
 ---
 
 ## Tech Stack
 
-- **Backend:** Python 3, Flask, Flask-Login, Flask-SQLAlchemy
-- **Database:** SQLite (file: `database/database.db`)
-- **Frontend:** Vanilla HTML, CSS, JavaScript (no frameworks)
+### Backend
+
+* Python 3
+* Flask
+* Flask-Login
+* Flask-SQLAlchemy
+
+### Database
+
+* PostgreSQL
+
+### Frontend
+
+* HTML5
+* CSS3
+* JavaScript
+
+### DevOps & Quality
+
+* Docker
+* Docker Compose
+* GitHub Actions
+* Flake8
+* SonarCloud
+* Docker Hub
 
 ---
 
 ## Project Structure
 
-```
+```text
 secure-file-sharing-platform/
-├── app.py                  # Flask app, all routes
-├── requirements.txt        # Python dependencies
+├── .github/
+│   └── workflows/
+│       └── ci-cd.yml
+├── app.py
+├── requirements.txt
+├── Dockerfile
+├── docker-compose.yml
+├── sonar-project.properties
+├── .gitignore
+├── README.md
 ├── models/
-│   └── models.py           # SQLAlchemy User + File models
-├── templates/
-│   ├── base.html           # Shared layout (nav, flash messages)
-│   ├── login.html          # Login page
-│   ├── register.html       # Registration page
-│   ├── dashbord.html       # Dashboard (stats + recent files)
-│   ├── files.html          # File list + upload form
-│   ├── profile.html        # Profile settings
-│   └── error.html          # 403 / 404 error page
+│   ├── __init__.py
+│   └── models.py
 ├── static/
-│   ├── css/style.css       # All styles
-│   └── js/main.js          # Frontend interactions
-├── uploads/                # Uploaded files stored here (auto-created)
-└── database/
-    └── database.db         # SQLite database (auto-created)
+│   ├── css/
+│   │   └── style.css
+│   └── js/
+│       └── main.js
+├── templates/
+│   ├── base.html
+│   ├── login.html
+│   ├── register.html
+│   ├── dashboard.html
+│   ├── files.html
+│   ├── profile.html
+│   └── error.html
+└── uploads/
 ```
 
 ---
 
-## Installation & Setup
+## Quick Start
 
-### 1. Clone or download the project
+### Clone the Repository
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/amenkhelil/secure-file-sharing-platform.git
 cd secure-file-sharing-platform
 ```
 
-### 2. Create a Python virtual environment
+### Start the Application
 
 ```bash
-python3 -m venv venv
+docker compose up --build
 ```
 
-Activate it:
+The application will be available at:
 
-- **Linux / macOS:**
-  ```bash
-  source venv/bin/activate
-  ```
-- **Windows:**
-  ```bash
-  venv\Scripts\activate
-  ```
+```text
+http://localhost:5000
+```
 
-### 3. Install dependencies
+---
+
+## Docker Commands
+
+### Start Services
 
 ```bash
-pip install -r requirements.txt
+docker compose up -d
 ```
 
----
-
-## Running the App
+### Stop Services
 
 ```bash
-python app.py
+docker compose down
 ```
 
-The server starts on **http://127.0.0.1:5000**
+### View Logs
 
-Open that URL in your browser. You will be redirected to the login page.  
-Create an account first via the **"Create one"** link, then log in.
-
-> The `uploads/` folder and `database/database.db` are created automatically on first run.
-
----
-
-## Page Overview
-
-| URL | Description |
-|-----|-------------|
-| `/` | Redirects to dashboard (logged in) or login |
-| `/login` | Sign in page |
-| `/register` | Create a new account |
-| `/dashboard` | Overview of your files and stats |
-| `/files` | Upload, manage, and share files |
-| `/profile` | Update your display name |
-| `/share/<token>` | Public download link (no login required) |
-
----
-
-## Configuration
-
-In `app.py`, you can change:
-
-```python
-app.config['SECRET_KEY'] = 'change-this-secret-key-in-production'
-app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024  # 20 MB
-ALLOWED_EXTENSIONS = {'pdf', 'docx', 'txt', 'png', 'jpg', 'jpeg'}
+```bash
+docker compose logs -f
 ```
 
-> ⚠️ Always change `SECRET_KEY` before deploying to production.
+### Rebuild Containers
+
+```bash
+docker compose up --build
+```
 
 ---
 
-## Stopping the Server
+## Application Pages
 
-Press `Ctrl + C` in the terminal where the app is running.
+| Route            | Description             |
+| ---------------- | ----------------------- |
+| `/`              | Home page               |
+| `/login`         | User login              |
+| `/register`      | User registration       |
+| `/dashboard`     | User dashboard          |
+| `/files`         | Upload and manage files |
+| `/profile`       | Profile management      |
+| `/share/<token>` | Public file download    |
 
 ---
 
-## Notes
+## DevOps Implementation
 
-- Files are stored in the `uploads/` folder on disk. Back this folder up if you care about the files.
-- The SQLite database is stored at `database/database.db`. Back this up too.
-- This app is intended for local / small-scale use. For production, use a proper WSGI server (e.g. Gunicorn) and a production-grade database.
+This project includes a complete DevOps workflow.
+
+### Containerization
+
+* Dockerized Flask application
+* Dockerized PostgreSQL database
+* Docker Compose orchestration
+* Portable and reproducible development environment
+
+### Continuous Integration
+
+Implemented with GitHub Actions:
+
+* Repository checkout
+* Dependency installation
+* Project validation
+* Flake8 linting
+* SonarCloud analysis
+* Docker image build
+
+### Code Quality
+
+Automated quality checks include:
+
+* PEP8 compliance verification with Flake8
+* Static code analysis with SonarCloud
+* Code smell detection
+* Security hotspot detection
+* Maintainability analysis
+
+### Continuous Delivery
+
+Docker images are automatically published to Docker Hub using:
+
+```text
+latest
+sha-<commit-id>
+```
+
+This enables:
+
+* Version tracking
+* Reproducible deployments
+* Reliable rollbacks
+
+---
+
+## CI/CD Pipeline
+
+The GitHub Actions workflow is composed of three stages:
+
+### 1. Lint & Validation
+
+Checks:
+
+* Project structure
+* Required files
+* Python code quality
+
+Tools:
+
+* Flake8
+
+### 2. SonarCloud Analysis
+
+Performs:
+
+* Static code analysis
+* Bug detection
+* Security checks
+* Code quality evaluation
+
+Tools:
+
+* SonarCloud
+
+### 3. Docker Build & Publish
+
+Performs:
+
+* Docker image build
+* Image tagging
+* Docker Hub publication
+
+Tools:
+
+* Docker Buildx
+* Docker Hub
+
+---
+
+## Architecture
+
+```text
+┌──────────────────────┐
+│      Flask App       │
+│      Container       │
+└──────────┬───────────┘
+           │
+           │ SQLAlchemy
+           │
+┌──────────▼───────────┐
+│      PostgreSQL      │
+│      Container       │
+└──────────────────────┘
+```
+
+---
+
+## SonarCloud Integration
+
+The project is connected to SonarCloud for continuous inspection of:
+
+* Reliability
+* Security
+* Maintainability
+* Code duplication
+* Technical debt
+
+Each push triggers a new analysis through GitHub Actions.
+
+---
+
+## Future Improvements
+
+Potential future enhancements:
+
+* JWT authentication
+* Password reset
+* Email verification
+* File encryption at rest
+* Virus scanning
+* AWS S3 integration
+* Kubernetes deployment
+* Terraform infrastructure provisioning
+* Monitoring with Prometheus and Grafana
+
+---
+
+## Security Considerations
+
+For production deployments:
+
+* Use HTTPS
+* Secure PostgreSQL credentials
+* Store secrets in environment variables
+* Configure regular backups
+* Restrict upload types and sizes
+* Use a production-grade reverse proxy
+
+---
+
+## Author
+
+Amenallah Khelil
+
+Telecommunications Engineering Student
+
+Interested in:
+
+* DevOps
+* Cloud Computing
+* Cybersecurity
+* MLOps
+* Software Engineering
+
+GitHub: https://github.com/amenkhelil
