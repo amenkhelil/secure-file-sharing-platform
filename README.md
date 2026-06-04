@@ -118,18 +118,22 @@ secure-file-sharing-platform/
 
 ---
 
-## Quick Start
+## One-Command Setup
 
-### Clone the Repository
+This project is fully containerized using Docker and Docker Compose.
+
+No manual installation of Python, PostgreSQL, or dependencies is required.
+
+### Requirements
+
+- Docker
+- Docker Compose
+
+### Run the project
 
 ```bash
 git clone https://github.com/amenkhelil/secure-file-sharing-platform.git
 cd secure-file-sharing-platform
-```
-
-### Start the Application
-
-```bash
 docker compose up --build
 ```
 
@@ -232,6 +236,17 @@ This enables:
 
 ---
 
+## Data Persistence
+
+The application uses Docker volumes to persist database data.
+
+### PostgreSQL Volume
+
+- PostgreSQL data is stored in a Docker-managed volume
+- This ensures data is not lost when containers are restarted or rebuilt
+
+---
+
 ## CI/CD Pipeline
 
 The GitHub Actions workflow is composed of three stages:
@@ -312,12 +327,7 @@ Each push triggers a new analysis through GitHub Actions.
 
 Potential future enhancements:
 
-* JWT authentication
-* Password reset
-* Email verification
-* File encryption at rest
 * Virus scanning
-* AWS S3 integration
 * Kubernetes deployment
 * Terraform infrastructure provisioning
 * Monitoring with Prometheus and Grafana
@@ -352,3 +362,4 @@ Interested in:
 * Software Engineering
 
 GitHub: https://github.com/amenkhelil
+Linkedin: https://www.linkedin.com/in/amenallah-khelil
