@@ -2,7 +2,7 @@
 
 A secure file-sharing web application built with Flask that allows users to upload, manage, and securely share files through private access links.
 
-This project also demonstrates modern DevOps practices, including containerization, automated code quality checks, static code analysis, CI/CD automation, and Docker image publishing.
+This project also demonstrates modern DevOps practices, including containerization, automated code quality checks, static code analysis, security scanning, CI/CD automation, Docker image publishing, and Kubernetes deployment.
 
 ---
 
@@ -57,7 +57,7 @@ The project was designed as both a full-stack web application and a practical De
 
 ### Backend
 
-* Python 3
+* Python 3.11
 * Flask
 * Flask-Login
 * Flask-SQLAlchemy
@@ -76,9 +76,11 @@ The project was designed as both a full-stack web application and a practical De
 
 * Docker
 * Docker Compose
+* Kubernetes (Minikube)
 * GitHub Actions
 * Flake8
 * SonarCloud
+* Trivy
 * Docker Hub
 
 ---
@@ -90,6 +92,14 @@ secure-file-sharing-platform/
 ├── .github/
 │   └── workflows/
 │       └── ci.yml
+├── k8s/
+│   ├── namespace.yaml
+│   ├── secret.yaml
+│   ├── configmap.yaml
+│   ├── postgres-volume.yaml
+│   ├── postgres.yaml
+│   ├── flask.yaml
+│   └── ingress.yaml
 ├── app.py
 ├── requirements.txt
 ├── Dockerfile
@@ -139,7 +149,7 @@ docker compose up --build
 
 The application will be available at:
 
-```text
+```
 http://localhost:5000
 ```
 
@@ -173,17 +183,76 @@ docker compose up --build
 
 ---
 
+## Kubernetes Deployment
+
+The project includes a complete Kubernetes setup for local deployment using Minikube.
+
+### Requirements
+
+- Docker
+- Minikube
+- kubectl
+
+### Start the cluster
+
+```bash
+minikube start --driver=docker
+minikube addons enable ingress
+```
+
+### Deploy
+
+```bash
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/
+```
+
+### Check status
+
+```bash
+kubectl get pods -n secure-share
+```
+
+### Access the application
+
+```bash
+minikube service flask-service -n secure-share
+```
+
+### Stop
+
+```bash
+kubectl delete -f k8s/
+minikube stop
+```
+
+---
+
+## Kubernetes Resources
+
+| File | Resource |
+|---|---|
+| `namespace.yaml` | Isolated environment for all resources |
+| `secret.yaml` | Database credentials and Flask secret key |
+| `configmap.yaml` | Database connection URL |
+| `postgres-volume.yaml` | Persistent storage for PostgreSQL data |
+| `postgres.yaml` | PostgreSQL Deployment and Service |
+| `flask.yaml` | Flask Deployment and Service |
+| `ingress.yaml` | External HTTP routing |
+
+---
+
 ## Application Pages
 
-| Route            | Description             |
-| ---------------- | ----------------------- |
-| `/`              | Home page               |
-| `/login`         | User login              |
-| `/register`      | User registration       |
-| `/dashboard`     | User dashboard          |
-| `/files`         | Upload and manage files |
-| `/profile`       | Profile management      |
-| `/share/<token>` | Public file download    |
+| Route | Description |
+|---|---|
+| `/` | Home page |
+| `/login` | User login |
+| `/register` | User registration |
+| `/dashboard` | User dashboard |
+| `/files` | Upload and manage files |
+| `/profile` | Profile management |
+| `/share/<token>` | Public file download |
 
 ---
 
@@ -193,7 +262,7 @@ This project includes a complete DevOps workflow.
 
 ### Containerization
 
-* Dockerized Flask application
+* Dockerized Flask application using `python:3.11-slim`
 * Dockerized PostgreSQL database
 * Docker Compose orchestration
 * Portable and reproducible development environment
@@ -203,11 +272,12 @@ This project includes a complete DevOps workflow.
 Implemented with GitHub Actions:
 
 * Repository checkout
-* Dependency installation
-* Project validation
+* Project structure validation
 * Flake8 linting
+* Kubernetes YAML syntax validation
 * SonarCloud analysis
-* Docker image build
+* Docker image build and publish
+* Trivy security scan
 
 ### Code Quality
 
@@ -223,7 +293,7 @@ Automated quality checks include:
 
 Docker images are automatically published to Docker Hub using:
 
-```text
+```
 latest
 sha-<commit-id>
 ```
@@ -236,75 +306,87 @@ This enables:
 
 ---
 
-## Data Persistence
-
-The application uses Docker volumes to persist database data.
-
-### PostgreSQL Volume
-
-- PostgreSQL data is stored in a Docker-managed volume
-- This ensures data is not lost when containers are restarted or rebuilt
-
----
-
 ## CI/CD Pipeline
 
-The GitHub Actions workflow is composed of three stages:
+The GitHub Actions workflow is composed of four stages:
 
-### 1. Lint & Validation
+### 1. Lint and Validate
 
-Checks:
-
-* Project structure
-* Required files
-* Python code quality
-
-Tools:
-
-* Flake8
+* Project structure check
+* Python syntax and code style with Flake8
+* Kubernetes YAML syntax validation
+* Confirms `.env` is not committed
 
 ### 2. SonarCloud Analysis
 
-Performs:
-
 * Static code analysis
-* Bug detection
-* Security checks
+* Bug and security hotspot detection
 * Code quality evaluation
 
-Tools:
+### 3. Docker Build and Publish
 
-* SonarCloud
+* Docker image build using `python:3.11-slim`
+* Tagging with `:latest` and `:sha-<commit>`
+* Publication to Docker Hub
 
-### 3. Docker Build & Publish
+### 4. Trivy Security Scan
 
-Performs:
+* Scans the published Docker image for vulnerabilities
+* Reports CRITICAL, HIGH, and MEDIUM severity issues
+* Reduced from 822 vulnerabilities (`python:3.11`) to 38 (`python:3.11-slim`)
 
-* Docker image build
-* Image tagging
-* Docker Hub publication
+---
 
-Tools:
+## Data Persistence
 
-* Docker Buildx
-* Docker Hub
+### Docker Compose
+
+PostgreSQL data is stored in a Docker-managed volume and survives container restarts.
+
+### Kubernetes
+
+PostgreSQL data is stored in a PersistentVolumeClaim (PVC) mounted at `/var/lib/postgresql/data`. Uploaded files are also persisted within the cluster.
 
 ---
 
 ## Architecture
 
-```text
+### Docker Compose
+
+```
 ┌──────────────────────┐
 │      Flask App       │
 │      Container       │
 └──────────┬───────────┘
-           │
            │ SQLAlchemy
-           │
 ┌──────────▼───────────┐
 │      PostgreSQL      │
 │      Container       │
 └──────────────────────┘
+```
+
+### Kubernetes
+
+```
+Browser
+   │
+   ▼
+Ingress (nginx)
+   │
+   ▼
+flask-service (ClusterIP)
+   │
+   ▼
+Flask Pod
+   │
+   ▼
+postgres-service (ClusterIP)
+   │
+   ▼
+PostgreSQL Pod
+   │
+   ▼
+PersistentVolumeClaim
 ```
 
 ---
@@ -323,17 +405,6 @@ Each push triggers a new analysis through GitHub Actions.
 
 ---
 
-## Future Improvements
-
-Potential future enhancements:
-
-* Virus scanning
-* Kubernetes deployment
-* Terraform infrastructure provisioning
-* Monitoring with Prometheus and Grafana
-
----
-
 ## Security Considerations
 
 For production deployments:
@@ -347,18 +418,20 @@ For production deployments:
 
 ---
 
+## Future Improvements
+
+* Terraform infrastructure provisioning
+* Monitoring with Prometheus and Grafana
+
+---
+
 ## Author
 
 Amenallah Khelil
 
-Telecommunications Engineering Student ( @ ENET’Com)
+Telecommunications Engineering Student @ ENET'Com
 
-Interested in:
-
-* DevOps
-* Cloud Computing
-* Cybersecurity
-* MLOps
+Interested in DevOps, Cloud Computing, Cybersecurity, and MLOps.
 
 - GitHub: https://github.com/amenkhelil
-- Linkedin: https://www.linkedin.com/in/amenallah-khelil
+- LinkedIn: https://www.linkedin.com/in/amenallah-khelil
