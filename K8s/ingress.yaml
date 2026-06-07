@@ -1,0 +1,24 @@
+# Exposes the app at http://secure-share.local
+# Requires: minikube addons enable ingress
+# Requires: add "$(minikube ip)  secure-share.local" to /etc/hosts
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: secureshare-ingress
+  namespace: secure-share
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: secure-share.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: flask-service
+                port:
+                  number: 5000

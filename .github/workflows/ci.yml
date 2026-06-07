@@ -1,22 +1,3 @@
-# =============================================================================
-# CI/CD Pipeline — Secure File Sharing Platform
-#
-# Runs on every push and pull request to main.
-#
-# Flow:
-#   [1] lint-and-validate   → check code quality and project structure
-#   [2] sonarcloud          → code quality and security analysis
-#   [3] build-and-push      → build Docker image, push to Docker Hub
-#
-# Each job only runs if the previous one passed.
-# If any job fails, the pipeline stops and GitHub shows a red ✗.
-#
-# Secrets required (GitHub → Settings → Secrets and variables → Actions):
-#   SONAR_TOKEN        → from sonarcloud.io  (see SETUP.md)
-#   DOCKERHUB_USERNAME → your Docker Hub username
-#   DOCKERHUB_TOKEN    → Docker Hub access token  (see SETUP.md)
-# =============================================================================
-
 name: CI/CD Pipeline
 
 on:
@@ -25,20 +6,14 @@ on:
   pull_request:
     branches: [ "main" ]
 
+# Secrets required in GitHub → Settings → Secrets and variables → Actions:
+#   SONAR_TOKEN        — from sonarcloud.io
+#   DOCKERHUB_USERNAME — your Docker Hub username
+#   DOCKERHUB_TOKEN    — Docker Hub access token (not your password)
+#   KUBECONFIG_DATA    — base64-encoded kubeconfig for your cluster
+
 jobs:
 
-  # ---------------------------------------------------------------------------
-  # JOB 1 — Lint and Validate
-  #
-  # What it does:
-  #   - Runs flake8 to catch syntax errors and bad code style
-  #   - Confirms every required project file exists
-  #   - Confirms .env was not accidentally committed
-  #
-  # Why it comes first:
-  #   These checks take ~20 seconds. If the code is already broken here,
-  #   there is no point running SonarCloud or building Docker.
-  # ---------------------------------------------------------------------------
   lint-and-validate:
     name: Lint and Validate
     runs-on: ubuntu-latest
@@ -47,22 +22,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Install Python 3.11 on the GitHub Actions runner.
-      # This is the same version used inside the Docker container.
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      # Install only flake8 — we do not need the full app dependencies
-      # just to check code style. This keeps this job fast.
       - name: Install flake8
         run: pip install flake8
 
-      # flake8 checks for syntax errors, unused imports, and style problems.
-      # --max-line-length=120  : lines up to 120 characters are accepted
-      # --extend-ignore=E501   : do not fail on lines that exceed the limit
-      # --statistics           : print a summary of how many of each issue
       - name: Lint with flake8
         run: |
           flake8 app.py models/ \
@@ -70,8 +37,6 @@ jobs:
             --extend-ignore=E501,W503 \
             --statistics
 
-      # Check that every file the project needs actually exists in the repo.
-      # This catches accidental deletions before they reach Docker build.
       - name: Validate project structure
         run: |
           REQUIRED_FILES=(
@@ -93,6 +58,13 @@ jobs:
             "templates/files.html"
             "templates/profile.html"
             "templates/error.html"
+            "k8s/namespace.yaml"
+            "k8s/secret.yaml"
+            "k8s/configmap.yaml"
+            "k8s/postgres-volume.yaml"
+            "k8s/postgres.yaml"
+            "k8s/flask.yaml"
+            "k8s/ingress.yaml"
           )
 
           FAILED=0
@@ -106,65 +78,47 @@ jobs:
           done
 
           if [ "$FAILED" -ne 0 ]; then
-            echo ""
             echo "One or more required files are missing."
             exit 1
           fi
 
-      # The .env file contains passwords and secret keys.
-      # It must never be committed to git.
-      # This step fails the pipeline immediately if it finds one.
       - name: Confirm .env is not committed
         run: |
           if [ -f ".env" ]; then
-            echo "ERROR: .env file must not be committed. It contains secrets."
+            echo "ERROR: .env must not be committed — it contains secrets."
             exit 1
           fi
           echo "✓ .env is not in the repository"
 
+      - name: Validate Kubernetes YAML syntax
+        run: |
+          pip install pyyaml
+          python3 -c "
+          import yaml, glob, sys
+          files = sorted(glob.glob('k8s/*.yaml'))
+          failed = 0
+          for f in files:
+              try:
+                  list(yaml.safe_load_all(open(f)))
+                  print(f'  ✓ {f}')
+              except yaml.YAMLError as e:
+                  print(f'  ✗ {f}: {e}')
+                  failed = 1
+          sys.exit(failed)
+          "
 
-  # ---------------------------------------------------------------------------
-  # JOB 2 — SonarCloud Analysis
-  #
-  # What it does:
-  #   Sends the code to SonarCloud (a free online service) which checks for:
-  #     - Bugs: code that will likely crash at runtime
-  #     - Security hotspots: patterns that could be a vulnerability
-  #     - Code smells: code that works but is confusing or fragile
-  #     - Duplicated code
-  #
-  #   The result appears in your SonarCloud dashboard and as a status
-  #   check on the GitHub commit (green/red badge).
-  #
-  # Why it comes after lint:
-  #   SonarCloud analysis takes ~1 minute. We only run it on code
-  #   that already passed the basic lint check.
-  #
-  # Required secret: SONAR_TOKEN
-  #   See SETUP.md for how to get this token in 5 steps.
-  # ---------------------------------------------------------------------------
+
   sonarcloud:
     name: SonarCloud Analysis
     runs-on: ubuntu-latest
     needs: lint-and-validate
 
     steps:
-      # fetch-depth: 0 is mandatory for SonarCloud.
-      # It fetches the complete git history — without it SonarCloud cannot
-      # calculate which code is "new" and analysis results are incorrect.
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # This single step handles everything:
-      #   1. Downloads the SonarCloud scanner tool
-      #   2. Reads sonar-project.properties for project settings
-      #   3. Uploads the analysis to sonarcloud.io
-      #   4. Returns pass/fail based on the Quality Gate result
-      #
-      # GITHUB_TOKEN is provided automatically by GitHub Actions.
-      # SONAR_TOKEN must be added by you in GitHub repository secrets.
       - name: Run SonarCloud scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
@@ -172,29 +126,6 @@ jobs:
           SONAR_TOKEN:  ${{ secrets.SONAR_TOKEN }}
 
 
-  # ---------------------------------------------------------------------------
-  # JOB 3 — Build and Push to Docker Hub
-  #
-  # What it does:
-  #   - Builds the Docker image using the Dockerfile
-  #   - Pushes the image to your public Docker Hub repository
-  #
-  # On push to main → builds AND pushes the image
-  # On pull request  → builds only, does NOT push
-  #   (so unreviewed code from a PR never reaches Docker Hub)
-  #
-  # Two image tags are pushed every time:
-  #   :latest         → always points to the newest build
-  #   :sha-a1b2c3d    → tied to the exact Git commit (never changes)
-  #
-  # The sha tag matters for future Kubernetes deployments.
-  # In a k8s manifest you pin the exact version:
-  #   image: yourusername/secure-file-sharing-platform:sha-a1b2c3d
-  # This makes deployments reproducible and rollbacks reliable.
-  #
-  # Required secrets: DOCKERHUB_USERNAME, DOCKERHUB_TOKEN
-  #   See SETUP.md for how to create these in 5 steps.
-  # ---------------------------------------------------------------------------
   build-and-push:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
@@ -204,15 +135,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Docker Buildx is the modern Docker build engine.
-      # It enables layer caching via GitHub's cache, which makes
-      # repeat builds significantly faster.
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Log in to Docker Hub using the secrets you configured.
-      # This step is skipped on pull requests — we only log in when
-      # we actually intend to push an image.
       - name: Log in to Docker Hub
         if: github.event_name == 'push'
         uses: docker/login-action@v3
@@ -220,9 +145,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Generate the two image tags automatically:
-      #   type=raw,value=latest       → yourusername/secureshare:latest
-      #   type=sha,prefix=sha-        → yourusername/secureshare:sha-a1b2c3d
       - name: Generate image tags
         id: meta
         uses: docker/metadata-action@v5
@@ -232,9 +154,6 @@ jobs:
             type=raw,value=latest
             type=sha,prefix=sha-,format=short
 
-      # Build the image and push it (or just build on pull requests).
-      # cache-from / cache-to stores Docker layers between pipeline runs.
-      # If requirements.txt has not changed, pip install is skipped entirely.
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
@@ -245,8 +164,48 @@ jobs:
           cache-from: type=gha
           cache-to:   type=gha,mode=max
 
-      - name: Print published image tags
+      - name: Print published tags
         if: github.event_name == 'push'
         run: |
-          echo "Image pushed to Docker Hub:"
           echo "${{ steps.meta.outputs.tags }}" | tr ',' '\n' | sed 's/^/  → /'
+
+
+  deploy:
+    name: Deploy to Kubernetes
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.event_name == 'push'
+
+    # NOTE: This job requires a cluster reachable from GitHub Actions.
+    # Local Minikube is not reachable — run kubectl apply -f k8s/ manually instead.
+    # With a cloud cluster (DigitalOcean, GKE, etc.) this works automatically.
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: "v1.29.0"
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Apply Kubernetes manifests
+        run: kubectl apply -f k8s/
+
+      - name: Update Flask image
+        run: |
+          SHA_TAG="sha-$(echo ${{ github.sha }} | cut -c1-7)"
+          IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/secure-file-sharing-platform:${SHA_TAG}"
+          kubectl set image deployment/flask-deployment flask=${IMAGE} -n secure-share
+
+      - name: Wait for rollout
+        run: kubectl rollout status deployment/flask-deployment -n secure-share --timeout=120s
+
+      - name: Show running pods
+        run: kubectl get pods -n secure-share

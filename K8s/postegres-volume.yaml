@@ -1,0 +1,15 @@
+# Requests 1GB of persistent storage for PostgreSQL.
+# Mounted at /var/lib/postgresql/data inside the postgres container.
+# Data survives pod restarts and redeployments.
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: secure-share
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

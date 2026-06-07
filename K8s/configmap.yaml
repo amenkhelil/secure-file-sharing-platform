@@ -1,0 +1,11 @@
+# Non-sensitive configuration.
+# "postgres-service" is the Kubernetes Service name defined in postgres.yaml.
+# Kubernetes DNS resolves it to the PostgreSQL Pod automatically.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: secure-share
+data:
+  DATABASE_URL: "postgresql://postgres:postgres@postgres-service:5432/filesdb"

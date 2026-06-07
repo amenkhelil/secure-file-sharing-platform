@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-deployment
+  namespace: secure-share
+  labels:
+    app: flask
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flask
+  template:
+    metadata:
+      labels:
+        app: flask
+    spec:
+      containers:
+        - name: flask
+          image: amenkh/secure-file-sharing-platform:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: DATABASE_URL
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secret
+                  key: SECRET_KEY
+
+---
+
+# ClusterIP: the Ingress controller routes external traffic to this Service.
+# The app is not exposed directly — access it via http://secure-share.local
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-service
+  namespace: secure-share
+spec:
+  type: ClusterIP
+  selector:
+    app: flask
+  ports:
+    - port: 5000
+      targetPort: 5000
