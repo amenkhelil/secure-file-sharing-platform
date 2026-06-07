@@ -170,42 +170,42 @@ jobs:
           echo "${{ steps.meta.outputs.tags }}" | tr ',' '\n' | sed 's/^/  → /'
 
 
-  deploy:
-    name: Deploy to Kubernetes
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    if: github.event_name == 'push'
 
-    # NOTE: This job requires a cluster reachable from GitHub Actions.
-    # Local Minikube is not reachable — run kubectl apply -f k8s/ manually instead.
-    # With a cloud cluster (DigitalOcean, GKE, etc.) this works automatically.
+# Minikube tourne en local et n'est pas accessible depuis GitHub Actions donc deploy job desactivé
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install kubectl
-        uses: azure/setup-kubectl@v3
-        with:
-          version: "v1.29.0"
-
-      - name: Configure kubectl
-        run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBECONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
-          chmod 600 $HOME/.kube/config
-
-      - name: Apply Kubernetes manifests
-        run: kubectl apply -f k8s/
-
-      - name: Update Flask image
-        run: |
-          SHA_TAG="sha-$(echo ${{ github.sha }} | cut -c1-7)"
-          IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/secure-file-sharing-platform:${SHA_TAG}"
-          kubectl set image deployment/flask-deployment flask=${IMAGE} -n secure-share
-
-      - name: Wait for rollout
-        run: kubectl rollout status deployment/flask-deployment -n secure-share --timeout=120s
-
-      - name: Show running pods
-        run: kubectl get pods -n secure-share
+#
+#  deploy:
+#    name: Deploy to Kubernetes
+#    runs-on: ubuntu-latest
+#    needs: build-and-push
+#    if: github.event_name == 'push'
+#
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v4
+#
+#      - name: Install kubectl
+#        uses: azure/setup-kubectl@v3
+#        with:
+#          version: "v1.29.0"
+#
+#      - name: Configure kubectl
+#        run: |
+#          mkdir -p $HOME/.kube
+#          echo "${{ secrets.KUBECONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
+#          chmod 600 $HOME/.kube/config
+#
+#      - name: Apply Kubernetes manifests
+#        run: kubectl apply -f k8s/
+#
+#      - name: Update Flask image
+#        run: |
+#          SHA_TAG="sha-$(echo ${{ github.sha }} | cut -c1-7)"
+#          IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/secure-file-sharing-platform:${SHA_TAG}"
+#          kubectl set image deployment/flask-deployment flask=${IMAGE} -n secure-share
+#
+#      - name: Wait for rollout
+#        run: kubectl rollout status deployment/flask-deployment -n secure-share --timeout=120s
+#
+#      - name: Show running pods
+#        run: kubectl get pods -n secure-share
